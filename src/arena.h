@@ -15,7 +15,7 @@ typedef struct {
 // INITIALIZATION
 
 // initialize the arena without any memory
-static void arena_init(arena *a);
+static inline void arena_init(arena *a);
 // initialize the arena with a given size
 void arena_init_reserve(arena *a, size_t size);
 
@@ -23,9 +23,9 @@ void arena_init_reserve(arena *a, size_t size);
 // DEALLOCATION
 
 // deallocate all objects in arena
-static void arena_free(arena *a);
+static inline void arena_free(arena *a);
 // Arenas can be forked - by simply copying an arena object, and remembering to free with the parent
-static void arena_fork_free(arena *a, arena *parent);
+static inline void arena_fork_free(arena *a, arena *parent);
 
 
 // ALLOCATION FUNCTIONS
@@ -33,16 +33,16 @@ static void arena_fork_free(arena *a, arena *parent);
 // align must be a power of two
 // size can't be 0
 // returns NULL on error
-void *arena_alloc_one        (arena *a, size_t size, size_t align);
+void *arena_alloc_one               (arena *a, size_t size, size_t align) __attribute__((malloc));
 #define ARENA_ALLOC_ONE(a, type)  arena_alloc_one (a, sizeof(type), alignof(type))
-static void *arena_calloc_one(arena *a, size_t size, size_t align);
+static inline void *arena_calloc_one(arena *a, size_t size, size_t align) __attribute__((malloc));
 #define ARENA_CALLOC_ONE(a, type) arena_calloc_one(a, sizeof(type), alignof(type))
 // align must be a power of two
 // size can't be 0
 // count can't be 0
 // returns NULL on error
-static void *arena_alloc     (arena *a, size_t size, size_t count, size_t align);
-static void *arena_calloc    (arena *a, size_t size, size_t count, size_t align);
+static inline void *arena_alloc     (arena *a, size_t size, size_t count, size_t align) __attribute__((malloc));
+static inline void *arena_calloc    (arena *a, size_t size, size_t count, size_t align) __attribute__((malloc));
 #define ARENA_ALLOC(a, type, count)  arena_alloc (a, sizeof(type), count, alignof(type))
 #define ARENA_CALLOC(a, type, count) arena_calloc(a, sizeof(type), count, alignof(type))
 

@@ -8,41 +8,46 @@ typedef struct wasteful_prefixtree_node {
 static_assert((1 << 6) == 64, "64 has 6 bits");
 
 // utility functions for both node types
+
+// INCLUDING the void* for target nodes
 static uint get_num_children(uint64_t child_bits[2]) {
-    return popcount_ul(child_bits[0]) + popcount_ul(child_bits[1]) - (child_bits[0] & 1);
+    return popcount_ul(child_bits[0]) + popcount_ul(child_bits[1]); // - (child_bits[0] & 1) to exclude the void*
 }
 
+// NOT INCLUDING the void* for target nodes
 static bool have_no_children(uint64_t child_bits[2]) {
     return child_bits[0] <= 1 && child_bits[1] == 0;
 }
 
 // Returns 0 if there's no children
 // Otherwise returns a child index, while removing it from the bitset
+// 0 is assumed not to be a member
 static char pop_some_child(uint64_t child_bits[2]) {
-    if (child_bits[1] != 0) {
-        int idx = __builtin_ctzl(child_bits[1]);
-        child_bits[1] ^= (uint64_t)1 << idx;
-        return (char)(64 + idx);
-    } else {
-        int idx = __builtin_ffsl(child_bits[0] >> 1);  // like ctz child_bits[0] & ~1 but supports 0 if no children
-        // Not correct for 0 but in that case who cares... the iteration is done
-        child_bits[0] &= ~((uint64_t)1 << idx);
-        return (char)idx;
+    // check both child_bits
+
+    for (int i = 0; i < 2; i++) {
+        if (child_bits[i] != 0) {
+            int bit_idx = __builtin_ctzl(child_bits[i]);
+            child_bits[i] ^= (uint64_t)1 << bit_idx;
+            return (char)(64 * i + bit_idx);
+        }
     }
+
+    return 0;
 }
 
 static uint get_child_index(uint64_t child_bits[2], char c) {
     if (c < 64) {
-        uint64_t prev_bits_0 = child_bits[0] & (((uint64_t)1 << c) - 2);  // -2 is to ignore lower bit too
+        uint64_t prev_bits_0 = child_bits[0] & (((uint64_t)1 << c) - 1);
         return popcount_ul(prev_bits_0);
     } else {
         uint64_t prev_bits_1 = child_bits[1] & (((uint64_t)1 << (c - 64)) - 1);
-        return popcount_ul(child_bits[0]) + popcount_ul(prev_bits_1) - (child_bits[0] & 1);
+        return popcount_ul(child_bits[0]) + popcount_ul(prev_bits_1);
     }
 }
 
 // prefixtree implementation
-static_prefixtree_node *prefixtree_build(arena *a, arena temp_parent, char *strings[], size_t strings_count) {
+static_prefixtree_node *prefixtree_build(arena *a, arena temp_parent, char *strings[], void *user_data[], size_t strings_count) {
     static_prefixtree_node *result = NULL;
 
     // fork parent temporaries allocator
@@ -84,6 +89,7 @@ static_prefixtree_node *prefixtree_build(arena *a, arena temp_parent, char *stri
 
         // final node on path is not internal
         node->child_bits[0] |= 1;
+        node->children[0] = user_data[strings_i];
 
         // update depth
         if (str_i > depth) depth = str_i;
@@ -122,6 +128,12 @@ static_prefixtree_node *prefixtree_build(arena *a, arena temp_parent, char *stri
         node->child_bits[0] = wasteful_node->child_bits[0];
         node->child_bits[1] = wasteful_node->child_bits[1];
         iteration_path_pairs[iter_depth].static_node = node;
+
+        if (wasteful_node->child_bits[0] & 1) {
+            // Copy user data and remove the bit
+            node->children[0] = (void *)wasteful_node->children[0];
+            wasteful_node->child_bits[0] ^= 1;
+        }
 
         // continue to next node - either child or some parent's next child
         char child_idx = pop_some_child(wasteful_node->child_bits);
