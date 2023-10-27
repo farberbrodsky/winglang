@@ -1,0 +1,89 @@
+# bigint
+var x = 5;
+# bool
+var y = x < 7;
+
+# null because it's in the else case
+var z = if false {
+    var w = 3;
+    w  # no semicolon - return value
+};
+# 4
+var z2 = z or 4;
+
+def main(argc, argv) {
+    # braces can't be ommitted
+    var j = for i = 0; i < argc; i++ {
+        print(argv[i]);
+        if i == i + 1 {
+            break i;
+        }
+    }
+    # null
+    print(j);
+}
+
+# integer types are strict, casting must be explicit
+var v1 = 5i32;
+var v2 = 7i64;
+var v3 = v1 + v2;  # promotion to i64
+var v4 = i64(v1) + v2;  # more explicit
+var v5 = i32(v1) + v2;  # works if within range
+var v6 = 6int;  # all standard C types work
+var v7: i32 = 7i16;  # automatically converted
+var v8: int = 8i64;  # runtime error: not implicitly converted
+
+# arrays and dictionaries like in python, including slices
+# in operator
+
+# anonymous classes are expressions, named classes are statements and don't require a semicolon
+var MyClass = class {
+    var x: i32 = 3;
+    var y;
+
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    def __repr__() {
+        str(x) + ", " + str(y)
+    }
+
+    def operator==(other) {
+        var x_equal = this.x == other.x;
+        var y_equal = this.y == other.y;
+        x_equal and y_equal
+    }
+
+    # if operator+= is not defined then assignment and operator+ are used instead
+};
+
+# extends and implements like in java
+# : x(x), super(y) initializer and consts like in C++
+
+# is operator like in python
+
+# operators: and/&&, or/||, not/!, &, |, ^, ~
+
+
+# iterators: probably like python, maybe like C++?
+# closures
+def bind(fn, first_arg) {
+    var result = def (*args) {
+        fn(first_arg, *args)
+    };
+    result
+}
+
+def bindMany(arr, fn) {
+    var result = [];
+
+    for item in arr {
+        result.append(def () {
+            fn(item)
+        })
+    }
+
+    result
+}
