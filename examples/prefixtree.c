@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "src/static_prefixtree.h"
+#include "../src/static_prefixtree.h"
 
 int main() {
     arena a, temp;
